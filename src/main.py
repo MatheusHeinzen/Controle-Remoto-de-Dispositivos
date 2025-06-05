@@ -2,6 +2,7 @@ import asyncio
 import json
 import threading
 import time
+import socket
 from datetime import datetime
 
 ### ------------------ SERVIDOR ------------------
@@ -9,7 +10,7 @@ from datetime import datetime
 class ServidorAsync:
     def __init__(self):
         self.dispositivos = {}
-        self.queues = {}  # Fila de respostas para cada dispositivo
+        self.queues = {}
         self.logs = []
 
     def log(self, mensagem):
@@ -42,11 +43,9 @@ class ServidorAsync:
                     dispositivo = mensagem["dispositivo"]
                     if dispositivo in self.dispositivos:
                         _, writer_disp = self.dispositivos[dispositivo]
-                        # Adiciona um campo de ID para correlacionar respostas (opcional)
                         writer_disp.write((json.dumps(mensagem) + "\n").encode('utf-8'))
                         await writer_disp.drain()
 
-                        # Aguarda resposta da fila do dispositivo
                         try:
                             resposta = await asyncio.wait_for(self.queues[dispositivo].get(), timeout=10)
                             writer.write((json.dumps(resposta) + "\n").encode('utf-8'))
@@ -62,7 +61,6 @@ class ServidorAsync:
                         await writer.drain()
 
                 elif tipo == "RESPOSTA":
-                    # Mensagem de resposta de um dispositivo
                     if nome_dispositivo and nome_dispositivo in self.queues:
                         await self.queues[nome_dispositivo].put(mensagem)
 
@@ -81,9 +79,21 @@ class ServidorAsync:
             await writer.wait_closed()
 
     async def iniciar(self):
-        server = await asyncio.start_server(self.tratar_cliente, '127.0.0.1', 5000)
+        # Cria um socket TCP explícito
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.bind(('127.0.0.1', 5000))
+        sock.listen()
+        sock.setblocking(False)  # Modo não-bloqueante para asyncio
+
+        self.log("🖥️ Servidor assíncrono iniciado na porta 5000")
+
+        # Cria o servidor asyncio usando o socket existente
+        server = await asyncio.start_server(
+            self.tratar_cliente,
+            sock=sock  # Passa o socket já criado
+        )
+
         async with server:
-            self.log("🖥️ Servidor assíncrono iniciado na porta 5000")
             await server.serve_forever()
 
 
@@ -94,7 +104,15 @@ def rodar_servidor():
 ### ------------------ PAINEL ------------------
 
 async def painel_comandos():
-    reader, writer = await asyncio.open_connection('127.0.0.1', 5000)
+    # Cria um socket TCP explícito
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setblocking(False)  # Modo não-bloqueante para asyncio
+
+    # Conecta usando asyncio
+    await asyncio.get_event_loop().sock_connect(sock, ('127.0.0.1', 5000))
+
+    # Cria reader/writer a partir do socket
+    reader, writer = await asyncio.open_connection(sock=sock)
 
     dispositivos = ["LAMPADA_1", "LAMPADA_2", "LAMPADA_3", "LAMPADA_4"]
     comandos = ["LIGAR", "STATUS", "DESLIGAR", "STATUS"]
@@ -128,7 +146,7 @@ async def painel_comandos():
             except ConnectionResetError:
                 print(f"❌ Conexão com o servidor foi encerrada.")
                 return
-            await asyncio.sleep(1)  # Pequena pausa entre comandos
+            await asyncio.sleep(1)
 
     print("🔒 Painel encerrando conexão.")
     writer.close()
@@ -145,7 +163,15 @@ class LampadaAsync:
         self.estado = False
 
     async def conectar(self):
-        reader, writer = await asyncio.open_connection('127.0.0.1', 5000)
+        # Cria um socket TCP explícito
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.setblocking(False)  # Modo não-bloqueante para asyncio
+
+        # Conecta usando asyncio
+        await asyncio.get_event_loop().sock_connect(sock, ('127.0.0.1', 5000))
+
+        # Cria reader/writer a partir do socket
+        reader, writer = await asyncio.open_connection(sock=sock)
 
         registro = {
             "tipo": "REGISTRO",
@@ -183,7 +209,6 @@ class LampadaAsync:
                     resposta = {"tipo": "RESPOSTA", "dispositivo": self.nome, "dados": "COMANDO DESCONHECIDO"}
                     print(f"❓ [{self.nome}] Comando desconhecido recebido.")
 
-                # Envia resposta como mensagem normal (servidor irá interceptar e repassar via fila)
                 writer.write((json.dumps(resposta) + "\n").encode('utf-8'))
                 await writer.drain()
 
