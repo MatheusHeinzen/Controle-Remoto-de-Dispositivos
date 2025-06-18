@@ -163,14 +163,12 @@ class LampadaAsync:
         self.estado = False
 
     async def conectar(self):
-        # Cria um socket TCP explícito
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.setblocking(False)  # Modo não-bloqueante para asyncio
+        sock.setblocking(False)
 
         # Conecta usando asyncio
         await asyncio.get_event_loop().sock_connect(sock, ('127.0.0.1', 5000))
 
-        # Cria reader/writer a partir do socket
         reader, writer = await asyncio.open_connection(sock=sock)
 
         registro = {
@@ -229,7 +227,7 @@ if __name__ == "__main__":
     t_servidor = threading.Thread(target=rodar_servidor, daemon=True)
     t_servidor.start()
 
-    time.sleep(1)  # Espera servidor iniciar
+    time.sleep(1)
 
     # Threads das Lâmpadas
     nomes_lampadas = ["LAMPADA_1", "LAMPADA_2", "LAMPADA_3", "LAMPADA_4"]
@@ -238,7 +236,7 @@ if __name__ == "__main__":
         t = threading.Thread(target=rodar_lampada, args=(nome,), daemon=True)
         t.start()
         threads_lampadas.append(t)
-        time.sleep(0.5)  # Pequeno delay para registro sequencial
+        time.sleep(0.5)
 
     time.sleep(1)
 
