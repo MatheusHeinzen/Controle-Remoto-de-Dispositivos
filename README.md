@@ -2,58 +2,68 @@
 
 ## Descrição
 
-Este projeto implementa um sistema de controle remoto de dispositivos (ex: lâmpadas) via comunicação TCP assíncrona.  
-Um **servidor** central recebe conexões de dispositivos (clientes) e de um **painel** especial, que envia comandos e exibe logs das respostas.
+Este projeto implementa um sistema de controle remoto de dispositivos (ex: lâmpadas) via comunicação TCP, utilizando threads e sockets em Python.  
+O sistema é composto por três partes principais:
 
-- **Servidor:** Encaminha comandos do painel para os dispositivos e repassa as respostas.
-- **Dispositivos (clientes):** Executam comandos recebidos (ligar, desligar, status) e respondem com seu estado atual.
-- **Painel:** Interface especial que envia comandos para os dispositivos e exibe logs de comandos e respostas.
+- **Servidor:** Centraliza a comunicação, recebe comandos do painel e encaminha para os dispositivos, mantendo o estado de cada um.
+- **Dispositivos (Lâmpadas):** Clientes que se registram no servidor, recebem comandos (`LIGAR`, `DESLIGAR`, `STATUS`) e respondem com seu estado atual.
+- **Painel de Controle:** Interface interativa no terminal que permite ao usuário enviar comandos para um ou mais dispositivos e visualizar as respostas.
+
+## Como Funciona
+
+- O servidor é iniciado em uma thread separada e aguarda conexões de dispositivos e do painel.
+- Cada lâmpada é instanciada em sua própria thread, conecta ao servidor e aguarda comandos.
+- O painel de controle permite selecionar dispositivos conectados e enviar comandos, exibindo as respostas em tempo real.
+- Toda a comunicação é feita via JSON sobre TCP.
 
 ## Requisitos Atendidos
 
-- **Comandos:** O sistema suporta os comandos `ligar`, `desligar` e `status`.
-- **Resposta dos clientes:** Cada dispositivo executa o comando recebido e responde com seu estado atual (`LIGADA` ou `DESLIGADA`).
-- **Log:** O painel exibe na tela todos os comandos enviados e as respostas recebidas dos dispositivos.
-- **Arquitetura:** Comunicação assíncrona entre servidor, painel e múltiplos dispositivos.
+- **Comandos:** Suporte aos comandos `LIGAR`, `DESLIGAR` e `STATUS`.
+- **Resposta dos clientes:** Cada dispositivo executa o comando e responde com seu estado atual (`LIGADA` ou `DESLIGADA`).
+- **Log:** O painel exibe todos os comandos enviados e as respostas recebidas.
+- **Arquitetura:** Cliente-servidor, com múltiplos dispositivos e painel interativo.
 
 ## Estrutura dos Arquivos
 
-- `src/main.py` — Código principal do servidor, painel e dispositivos.
+- `main.py` — Código principal do servidor, painel e dispositivos.
 - `README.md` — Este arquivo de documentação.
 
 ## Como Executar
 
-1. **Requisitos:** Python 3.8+ (recomenda-se 3.11+), sem dependências externas.
+1. **Requisitos:** Python 3.8+ (sem dependências externas).
 2. **Execução:**  
-   Basta rodar o arquivo `main.py`:
+   No terminal, execute:
    ```bash
-   python src/main.py
+   python main.py
    ```
-   O script inicia o servidor, registra 4 lâmpadas e executa o painel automaticamente em threads separadas.
+   O script inicia automaticamente o servidor, quatro lâmpadas e o painel interativo.
 
 3. **Fluxo:**
    - O servidor inicia e aguarda conexões.
-   - Cada lâmpada se conecta, se registra e aguarda comandos.
-   - O painel conecta, envia comandos sequenciais para cada lâmpada e exibe as respostas.
-   - Todos os logs são impressos no terminal.
+   - As lâmpadas se registram e ficam aguardando comandos.
+   - O painel permite selecionar dispositivos e enviar comandos, exibindo as respostas.
 
-## Exemplo de Saída
+## Exemplo de Uso
 
 ```
-🖥️ Servidor assíncrono iniciado na porta 5000
-✅ LAMPADA_1 registrado.
+🖥️ Servidor iniciado em 127.0.0.1:5000. Aguardando conexões...
+💡 [LAMPADA_1] Registrada e pronta para comandos
 ...
-🟦 Painel: Enviando comandos para LAMPADA_1
-➡️ Painel: Enviando 'LIGAR' para LAMPADA_1
-📥 Painel recebeu de LAMPADA_1: {'tipo': 'RESPOSTA', 'dispositivo': 'LAMPADA_1', 'dados': 'LIGADA'}
+PAINEL DE CONTROLE - DISPOSITIVOS CONECTADOS
+Dispositivos disponíveis:
+1. LAMPADA_1
+2. LAMPADA_2
 ...
+➡️ Enviado LIGAR para LAMPADA_1
+📥 Resposta de LAMPADA_1: {'tipo': 'RESPOSTA', 'dispositivo': 'LAMPADA_1', 'dados': 'LIGADA', ...}
 ```
 
 ## Observações
 
-- O código é totalmente assíncrono e suporta múltiplos dispositivos.
-- O painel pode ser adaptado para interface gráfica ou web, se desejado.
-- O servidor faz o roteamento correto das mensagens e mantém logs detalhados.
+- O código é multi-threaded e suporta múltiplos dispositivos simultâneos.
+- O painel pode ser facilmente adaptado para interface gráfica ou web.
+- O servidor mantém o estado de cada dispositivo e faz o roteamento correto dos comandos.
+- Comentários feitos via CHATGPT para documentação.
 
 ---
 
