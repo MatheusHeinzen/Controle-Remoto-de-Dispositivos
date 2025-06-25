@@ -3,7 +3,6 @@ import threading
 import json
 from datetime import datetime
 import time
-import sys
 
 # --- Configurações Globais ---
 HOST = '127.0.0.1'  # Endereço do servidor (localhost)
@@ -149,7 +148,7 @@ def iniciar_servidor():
                 thread = threading.Thread(target=tratar_cliente, args=(conn, addr))
                 thread.daemon = True
                 thread.start()
-                log(f"🔵 Conexões ativas: {threading.active_count() - 1}")
+                log(f"🔵 Conexões ativas: {threading.active_count()}")
 
     except Exception as e:
         log(f"❌ Erro no servidor: {str(e)}")
